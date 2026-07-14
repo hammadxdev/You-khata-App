@@ -1,16 +1,25 @@
-import { useIsDark } from '@/hooks/useColorScheme';
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
-import { Alert, FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useIsDark } from "@/hooks/useColorScheme";
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Define the transaction interface
 interface BatwaTransaction {
   id: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   category: string;
   timestamp: number;
   notes: string;
@@ -21,13 +30,19 @@ const formatCurrency = (amount: number): string => {
   return `Rs. ${amount.toLocaleString()}`;
 };
 
+const formatTransactionAmount = (transaction: BatwaTransaction): string => {
+  const sign =
+    transaction.type === "expense" || transaction.amount < 0 ? "-" : "";
+  return `${sign}${formatCurrency(Math.abs(transaction.amount))}`;
+};
+
 // Get date in readable format
 const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 };
 
@@ -35,40 +50,41 @@ export default function BatwaScreen() {
   const isDark = useIsDark();
   const [transactions, setTransactions] = useState<BatwaTransaction[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState<'income' | 'expense'>('expense');
-  const [category, setCategory] = useState('');
-  const [notes, setNotes] = useState('');
-  const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [amount, setAmount] = useState("");
+  const [type, setType] = useState<"income" | "expense">("expense");
+  const [category, setCategory] = useState("");
+  const [notes, setNotes] = useState("");
+  const [filter, setFilter] = useState<"all" | "income" | "expense">("all");
 
   // Load transactions when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       loadTransactions();
-    }, [])
+    }, []),
   );
 
   // Load transactions from AsyncStorage
   const loadTransactions = async () => {
     try {
-      const storedTransactions = await AsyncStorage.getItem('batwaTransactions');
+      const storedTransactions =
+        await AsyncStorage.getItem("batwaTransactions");
       if (storedTransactions) {
         setTransactions(JSON.parse(storedTransactions));
       }
     } catch (error) {
-      console.error('Error loading transactions:', error);
+      console.error("Error loading transactions:", error);
     }
   };
 
   // Save a new transaction
   const saveTransaction = async () => {
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      Alert.alert("Invalid Amount", "Please enter a valid amount.");
       return;
     }
 
     if (!category) {
-      Alert.alert('Missing Category', 'Please select a category.');
+      Alert.alert("Missing Category", "Please select a category.");
       return;
     }
 
@@ -83,109 +99,207 @@ export default function BatwaScreen() {
 
     try {
       const updatedTransactions = [...transactions, newTransaction];
-      await AsyncStorage.setItem('batwaTransactions', JSON.stringify(updatedTransactions));
+      await AsyncStorage.setItem(
+        "batwaTransactions",
+        JSON.stringify(updatedTransactions),
+      );
       setTransactions(updatedTransactions);
       resetForm();
       setIsModalVisible(false);
     } catch (error) {
-      console.error('Error saving transaction:', error);
-      Alert.alert('Error', 'Failed to save transaction.');
+      console.error("Error saving transaction:", error);
+      Alert.alert("Error", "Failed to save transaction.");
     }
   };
 
   // Reset form fields
   const resetForm = () => {
-    setAmount('');
-    setType('expense');
-    setCategory('');
-    setNotes('');
+    setAmount("");
+    setType("expense");
+    setCategory("");
+    setNotes("");
   };
 
   // Calculate total income and expenses
   const totalIncome = transactions
-    .filter(t => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
-  
+
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
+    .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + t.amount, 0);
-  
+
   const balance = totalIncome - totalExpense;
 
   // Filter transactions
   const filteredTransactions = transactions
-    .filter(t => filter === 'all' || t.type === filter)
+    .filter((t) => filter === "all" || t.type === filter)
     .sort((a, b) => b.timestamp - a.timestamp);
 
   // Available categories
-  const expenseCategories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Other'];
-  const incomeCategories = ['Salary', 'Bonus', 'Gift', 'Interest', 'Other'];
+  const expenseCategories = [
+    "Food",
+    "Transport",
+    "Shopping",
+    "Bills",
+    "Entertainment",
+    "Other",
+  ];
+  const incomeCategories = ["Salary", "Bonus", "Gift", "Interest", "Other"];
 
   // Render transaction item
   const renderTransaction = ({ item }: { item: BatwaTransaction }) => (
-    <View style={[styles.transactionItem, isDark ? styles.darkItem : styles.lightItem]}>
+    <View
+      style={[
+        styles.transactionItem,
+        isDark ? styles.darkItem : styles.lightItem,
+      ]}
+    >
       <View style={styles.transactionLeft}>
-        <View style={[
-          styles.categoryIcon, 
-          item.type === 'income' ? styles.incomeIcon : styles.expenseIcon
-        ]}>
-          <Ionicons 
-            name={item.type === 'income' ? 'arrow-down' : 'arrow-up'} 
-            size={16} 
-            color="#FFFFFF" 
+        <View
+          style={[
+            styles.categoryIcon,
+            item.type === "income" ? styles.incomeIcon : styles.expenseIcon,
+          ]}
+        >
+          <Ionicons
+            name={item.type === "income" ? "arrow-down" : "arrow-up"}
+            size={16}
+            color="#FFFFFF"
           />
         </View>
         <View style={styles.transactionInfo}>
-          <Text style={[styles.categoryText, isDark ? styles.darkText : styles.lightText]}>{item.category}</Text>
+          <Text
+            style={[
+              styles.categoryText,
+              isDark ? styles.darkText : styles.lightText,
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.category}
+          </Text>
           <Text style={styles.timestampText}>{formatDate(item.timestamp)}</Text>
-          {item.notes ? <Text style={styles.notesText}>{item.notes}</Text> : null}
+          {item.notes ? (
+            <Text
+              style={styles.notesText}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {item.notes}
+            </Text>
+          ) : null}
         </View>
       </View>
-      <Text style={[
-        styles.amountText,
-        item.type === 'income' ? styles.incomeText : styles.expenseText
-      ]}>
-        {item.type === 'income' ? '+' : '-'}{formatCurrency(item.amount)}
-      </Text>
+      <View style={styles.transactionAmountContainer}>
+        <Text
+          style={[
+            styles.amountText,
+            item.type === "income" ? styles.incomeText : styles.expenseText,
+          ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.65}
+          ellipsizeMode="tail"
+        >
+          {formatTransactionAmount(item)}
+        </Text>
+      </View>
     </View>
   );
 
   return (
-    <SafeAreaView style={[styles.container, isDark ? styles.darkContainer : styles.lightContainer]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        isDark ? styles.darkContainer : styles.lightContainer,
+      ]}
+    >
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, isDark ? styles.darkText : styles.lightText]}>Batwa</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            isDark ? styles.darkText : styles.lightText,
+          ]}
+        >
+          Batwa
+        </Text>
       </View>
 
       {/* Summary Card */}
-      <View style={[styles.summaryCard, isDark ? styles.darkCard : styles.lightCard]}>
+      <View
+        style={[
+          styles.summaryCard,
+          isDark ? styles.darkCard : styles.lightCard,
+        ]}
+      >
         <View style={styles.balanceContainer}>
           <Text style={styles.balanceLabel}>Current Balance</Text>
-          <Text style={[
-            styles.balanceAmount,
-            balance >= 0 ? styles.positiveBalance : styles.negativeBalance
-          ]}>
+          <Text
+            style={[
+              styles.balanceAmount,
+              balance >= 0 ? styles.positiveBalance : styles.negativeBalance,
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
             {formatCurrency(balance)}
           </Text>
         </View>
-        
+
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <View style={styles.statIconIncome}>
               <Ionicons name="arrow-down" size={16} color="#FFFFFF" />
             </View>
-            <View>
-              <Text style={[styles.statLabel, isDark ? styles.darkSubtext : styles.lightSubtext]}>Income</Text>
-              <Text style={[styles.statAmount, isDark ? styles.darkText : styles.lightText]}>{formatCurrency(totalIncome)}</Text>
+            <View style={styles.statTextContainer}>
+              <Text
+                style={[
+                  styles.statLabel,
+                  isDark ? styles.darkSubtext : styles.lightSubtext,
+                ]}
+              >
+                Income
+              </Text>
+              <Text
+                style={[
+                  styles.statAmount,
+                  isDark ? styles.darkText : styles.lightText,
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {formatCurrency(totalIncome)}
+              </Text>
             </View>
           </View>
-          
+
           <View style={styles.statItem}>
             <View style={styles.statIconExpense}>
               <Ionicons name="arrow-up" size={16} color="#FFFFFF" />
             </View>
-            <View>
-              <Text style={[styles.statLabel, isDark ? styles.darkSubtext : styles.lightSubtext]}>Expense</Text>
-              <Text style={[styles.statAmount, isDark ? styles.darkText : styles.lightText]}>{formatCurrency(totalExpense)}</Text>
+            <View style={styles.statTextContainer}>
+              <Text
+                style={[
+                  styles.statLabel,
+                  isDark ? styles.darkSubtext : styles.lightSubtext,
+                ]}
+              >
+                Expense
+              </Text>
+              <Text
+                style={[
+                  styles.statAmount,
+                  isDark ? styles.darkText : styles.lightText,
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {formatCurrency(totalExpense)}
+              </Text>
             </View>
           </View>
         </View>
@@ -193,25 +307,55 @@ export default function BatwaScreen() {
 
       {/* Filter Options */}
       <View style={styles.filterContainer}>
-        <TouchableOpacity 
-          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-          onPress={() => setFilter('all')}
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === "all" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter("all")}
         >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All</Text>
+          <Text
+            style={[
+              styles.filterText,
+              filter === "all" && styles.filterTextActive,
+            ]}
+          >
+            All
+          </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.filterButton, filter === 'income' && styles.filterButtonActive]}
-          onPress={() => setFilter('income')}
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === "income" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter("income")}
         >
-          <Text style={[styles.filterText, filter === 'income' && styles.filterTextActive]}>Income</Text>
+          <Text
+            style={[
+              styles.filterText,
+              filter === "income" && styles.filterTextActive,
+            ]}
+          >
+            Income
+          </Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.filterButton, filter === 'expense' && styles.filterButtonActive]}
-          onPress={() => setFilter('expense')}
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === "expense" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter("expense")}
         >
-          <Text style={[styles.filterText, filter === 'expense' && styles.filterTextActive]}>Expense</Text>
+          <Text
+            style={[
+              styles.filterText,
+              filter === "expense" && styles.filterTextActive,
+            ]}
+          >
+            Expense
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -219,9 +363,11 @@ export default function BatwaScreen() {
       <FlatList
         data={filteredTransactions}
         renderItem={renderTransaction}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         style={styles.transactionList}
-        contentContainerStyle={filteredTransactions.length === 0 ? styles.emptyListContent : null}
+        contentContainerStyle={
+          filteredTransactions.length === 0 ? styles.emptyListContent : null
+        }
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <Ionicons name="wallet-outline" size={48} color="#AAAAAA" />
@@ -234,7 +380,7 @@ export default function BatwaScreen() {
       />
 
       {/* Add Transaction Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.addButton}
         onPress={() => setIsModalVisible(true)}
       >
@@ -249,7 +395,12 @@ export default function BatwaScreen() {
         onRequestClose={() => setIsModalVisible(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, isDark ? styles.darkModal : styles.lightModal]}>
+          <View
+            style={[
+              styles.modalContent,
+              isDark ? styles.darkModal : styles.lightModal,
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Add Transaction</Text>
               <TouchableOpacity onPress={() => setIsModalVisible(false)}>
@@ -270,20 +421,36 @@ export default function BatwaScreen() {
             </View>
 
             <View style={styles.typeSelector}>
-              <TouchableOpacity 
-                style={[styles.typeButton, type === 'income' && styles.typeButtonActive]}
-                onPress={() => setType('income')}
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  type === "income" && styles.typeButtonActive,
+                ]}
+                onPress={() => setType("income")}
               >
-                <Text style={[styles.typeText, type === 'income' && styles.typeTextActive]}>
+                <Text
+                  style={[
+                    styles.typeText,
+                    type === "income" && styles.typeTextActive,
+                  ]}
+                >
                   Income
                 </Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.typeButton, type === 'expense' && styles.typeButtonActive]}
-                onPress={() => setType('expense')}
+
+              <TouchableOpacity
+                style={[
+                  styles.typeButton,
+                  type === "expense" && styles.typeButtonActive,
+                ]}
+                onPress={() => setType("expense")}
               >
-                <Text style={[styles.typeText, type === 'expense' && styles.typeTextActive]}>
+                <Text
+                  style={[
+                    styles.typeText,
+                    type === "expense" && styles.typeTextActive,
+                  ]}
+                >
                   Expense
                 </Text>
               </TouchableOpacity>
@@ -292,20 +459,27 @@ export default function BatwaScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Category</Text>
               <View style={styles.categoryContainer}>
-                {(type === 'income' ? incomeCategories : expenseCategories).map((cat) => (
-                  <TouchableOpacity
-                    key={cat}
-                    style={[styles.categoryButton, category === cat && styles.categoryButtonActive]}
-                    onPress={() => setCategory(cat)}
-                  >
-                    <Text style={[
-                      styles.categoryButtonText, 
-                      category === cat && styles.categoryButtonTextActive
-                    ]}>
-                      {cat}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {(type === "income" ? incomeCategories : expenseCategories).map(
+                  (cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.categoryButton,
+                        category === cat && styles.categoryButtonActive,
+                      ]}
+                      onPress={() => setCategory(cat)}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryButtonText,
+                          category === cat && styles.categoryButtonTextActive,
+                        ]}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  ),
+                )}
               </View>
             </View>
 
@@ -321,7 +495,7 @@ export default function BatwaScreen() {
               />
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.saveButton}
               onPress={saveTransaction}
             >
@@ -339,10 +513,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   darkContainer: {
-    backgroundColor: '#121212',
+    backgroundColor: "#121212",
   },
   lightContainer: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: "#F5F5F5",
   },
   header: {
     paddingHorizontal: 16,
@@ -351,105 +525,126 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   darkText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   lightText: {
-    color: '#121212',
+    color: "#121212",
   },
   darkSubtext: {
-    color: '#AAAAAA',
+    color: "#AAAAAA",
   },
   lightSubtext: {
-    color: '#777777',
+    color: "#777777",
   },
   summaryCard: {
     margin: 16,
     padding: 16,
     borderRadius: 12,
+    minWidth: 0,
   },
   darkCard: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: "#1E1E1E",
   },
   lightCard: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
   darkItem: {
-    backgroundColor: '#1E1E1E',
+    backgroundColor: "#1E1E1E",
   },
   lightItem: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   darkModal: {
-    backgroundColor: '#121212',
+    backgroundColor: "#121212",
   },
   lightModal: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
   },
   balanceContainer: {
     marginBottom: 16,
-    alignItems: 'center',
+    alignItems: "center",
+    width: "100%",
+    minWidth: 0,
   },
   balanceLabel: {
     fontSize: 14,
-    color: '#AAAAAA',
+    color: "#AAAAAA",
     marginBottom: 4,
   },
   balanceAmount: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    maxWidth: "100%",
+    minWidth: 0,
+    flexShrink: 1,
+    textAlign: "center",
   },
   positiveBalance: {
-    color: '#4CAF50',
+    color: "#4CAF50",
   },
   negativeBalance: {
-    color: '#E94057',
+    color: "#E94057",
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    minWidth: 0,
+    gap: 12,
   },
   statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    minWidth: 0,
+  },
+  statTextContainer: {
+    flex: 1,
+    minWidth: 0,
   },
   statIconIncome: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#4CAF50",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
+    flexShrink: 0,
   },
   statIconExpense: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E94057',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#E94057",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
+    flexShrink: 0,
   },
   statLabel: {
     fontSize: 12,
-    color: '#AAAAAA',
+    color: "#AAAAAA",
   },
   statAmount: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#FFFFFF',
+    fontWeight: "500",
+    color: "#FFFFFF",
+    maxWidth: "100%",
+    minWidth: 0,
+    flexShrink: 1,
   },
   filterContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingHorizontal: 16,
     marginBottom: 8,
   },
@@ -458,18 +653,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 16,
     marginRight: 8,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: "#2A2A2A",
   },
   filterButtonActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
   },
   filterText: {
-    color: '#AAAAAA',
+    color: "#AAAAAA",
     fontSize: 14,
   },
   filterTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '500',
+    color: "#FFFFFF",
+    fontWeight: "500",
   },
   transactionList: {
     flex: 1,
@@ -477,195 +672,214 @@ const styles = StyleSheet.create({
   },
   emptyListContent: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   transactionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1E1E1E',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E1E1E",
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
+    width: "100%",
+    minWidth: 0,
+    overflow: "hidden",
   },
   transactionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    minWidth: 0,
+    paddingRight: 12,
   },
   categoryIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
+    flexShrink: 0,
   },
   incomeIcon: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
   },
   expenseIcon: {
-    backgroundColor: '#E94057',
+    backgroundColor: "#E94057",
   },
   transactionInfo: {
     flex: 1,
+    minWidth: 0,
   },
   categoryText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#FFFFFF',
+    fontWeight: "500",
+    color: "#FFFFFF",
     marginBottom: 2,
   },
   timestampText: {
     fontSize: 12,
-    color: '#AAAAAA',
+    color: "#AAAAAA",
     marginBottom: 2,
   },
   notesText: {
     fontSize: 12,
-    color: '#888888',
+    color: "#888888",
+  },
+  transactionAmountContainer: {
+    flexGrow: 0,
+    flexShrink: 1,
+    flexBasis: "38%",
+    minWidth: 0,
+    maxWidth: "45%",
+    alignItems: "flex-end",
   },
   amountText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
+    flexShrink: 1,
+    maxWidth: "100%",
+    minWidth: 0,
+    textAlign: "right",
   },
   incomeText: {
-    color: '#4CAF50',
+    color: "#4CAF50",
   },
   expenseText: {
-    color: '#E94057',
+    color: "#E94057",
   },
   emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 20,
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#AAAAAA',
-    textAlign: 'center',
+    color: "#AAAAAA",
+    textAlign: "center",
   },
   addButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     margin: 16,
     borderRadius: 8,
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   addButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    backgroundColor: '#121212',
+    backgroundColor: "#121212",
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: 16,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: "bold",
+    color: "#FFFFFF",
   },
   inputGroup: {
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: "#2A2A2A",
     borderRadius: 8,
     height: 48,
     paddingHorizontal: 12,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
   },
   textArea: {
     height: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
     paddingTop: 12,
   },
   typeSelector: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 16,
   },
   typeButton: {
     flex: 1,
     height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#2A2A2A',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#2A2A2A",
     borderWidth: 1,
-    borderColor: '#3A3A3A',
+    borderColor: "#3A3A3A",
   },
   typeButtonActive: {
-    backgroundColor: '#1E1E1E',
-    borderColor: '#4CAF50',
+    backgroundColor: "#1E1E1E",
+    borderColor: "#4CAF50",
   },
   typeText: {
-    color: '#AAAAAA',
+    color: "#AAAAAA",
     fontSize: 15,
   },
   typeTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '500',
+    color: "#FFFFFF",
+    fontWeight: "500",
   },
   categoryContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -4,
   },
   categoryButton: {
-    backgroundColor: '#2A2A2A',
+    backgroundColor: "#2A2A2A",
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
     margin: 4,
   },
   categoryButtonActive: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
   },
   categoryButtonText: {
-    color: '#AAAAAA',
+    color: "#AAAAAA",
     fontSize: 14,
   },
   categoryButtonTextActive: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     borderRadius: 8,
     height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   saveButtonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
-}); 
+});

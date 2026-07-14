@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Customer, Transaction, BatwaTransaction, UserProfile, Profile } from '../types';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -8,58 +9,9 @@ const STORAGE_KEYS = {
   BATWA_TRANSACTIONS: 'yourkhata_batwa_transactions',
   PROFILES: 'yourkhata_profiles',
   ACTIVE_PROFILE: 'yourkhata_active_profile',
+  ONBOARDING_COMPLETED: 'yourkhata_onboarding_completed',
+  FIRST_LAUNCH: 'yourkhata_first_launch',
 };
-
-// Customer type
-export interface Customer {
-  id: string;
-  name: string;
-  initials: string;
-  phoneNumber: string;
-  amount: number;
-  toReceive: boolean;
-  createdAt: number;
-  profileId: string; // Associate customer with a profile
-}
-
-// Transaction type
-export interface Transaction {
-  id: string;
-  customerId: string;
-  amount: number;
-  isReceived: boolean; // true if customer gave money (Maine Liye), false if we gave money (Maine Diye)
-  date: number;
-  notes?: string;
-  balance: number;
-  profileId: string; // Associate transaction with a profile
-}
-
-// Batwa Transaction type
-export interface BatwaTransaction {
-  id: string;
-  amount: number;
-  type: 'income' | 'expense';
-  category: string;
-  timestamp: number;
-  notes: string;
-  profileId: string; // Associate batwa transaction with a profile
-}
-
-// User profile type
-export interface UserProfile {
-  id: string;
-  name: string;
-  phoneNumber?: string;
-  profilePicture?: string;
-}
-
-// Profile type
-export interface Profile {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: number;
-}
 
 // Generate unique ID
 export const generateId = (): string => {
@@ -606,23 +558,21 @@ export const StorageUtils = {
   initializeDefaultProfile: async (): Promise<Profile | null> => {
     try {
       const profiles = await StorageUtils.getProfiles();
-      
-      // If no profiles exist, create a default one
       if (profiles.length === 0) {
-        const defaultProfile: Profile = {
-          id: generateId(),
+        const defaultProfile: Omit<Profile, 'id' | 'createdAt'> = {
           name: 'Default Profile',
-          description: 'Default khata profile',
-          createdAt: Date.now(),
+          businessName: 'My Business',
+          phone: '',
+          address: '',
+          isDefault: true,
         };
         
-        await StorageUtils.saveProfiles([defaultProfile]);
-        await StorageUtils.setActiveProfile(defaultProfile);
-        
-        return defaultProfile;
+        const newProfile = await StorageUtils.addProfile(defaultProfile);
+        await StorageUtils.setActiveProfile(newProfile);
+        return newProfile;
       }
       
-      // If profiles exist but no active profile is set, set the first one as active
+      // Set first profile as active if none is set
       const activeProfile = await StorageUtils.getActiveProfile();
       if (!activeProfile && profiles.length > 0) {
         await StorageUtils.setActiveProfile(profiles[0]);
@@ -635,6 +585,58 @@ export const StorageUtils = {
       return null;
     }
   },
+
+  // ----- Onboarding -----
+  
+  // Check if this is the first launch
+  isFirstLaunch: async (): Promise<boolean> => {
+    try {
+      const firstLaunch = await AsyncStorage.getItem(STORAGE_KEYS.FIRST_LAUNCH);
+      return firstLaunch === null;
+    } catch (error) {
+      console.error('Error checking first launch:', error);
+      return true; // Default to true if error
+    }
+  },
+
+  // Mark first launch as completed
+  setFirstLaunchCompleted: async (): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.FIRST_LAUNCH, 'completed');
+    } catch (error) {
+      console.error('Error setting first launch completed:', error);
+    }
+  },
+
+  // Check if onboarding is completed
+  isOnboardingCompleted: async (): Promise<boolean> => {
+    try {
+      const completed = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+      return completed === 'true';
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      return false;
+    }
+  },
+
+  // Mark onboarding as completed
+  setOnboardingCompleted: async (): Promise<void> => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, 'true');
+    } catch (error) {
+      console.error('Error setting onboarding completed:', error);
+    }
+  },
+
+  // Reset onboarding (for testing purposes)
+  resetOnboarding: async (): Promise<void> => {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.ONBOARDING_COMPLETED);
+      await AsyncStorage.removeItem(STORAGE_KEYS.FIRST_LAUNCH);
+    } catch (error) {
+      console.error('Error resetting onboarding:', error);
+    }
+  },
 };
 
-export default StorageUtils; 
+export default StorageUtils;

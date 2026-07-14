@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "your-khata",
+    "name": "Your Khata - Business Manager",
     "slug": "your-khata",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,16 +8,28 @@
     "scheme": "yourkhata",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "Your Khata is a comprehensive business management app designed for small businesses and entrepreneurs. Manage customers, track transactions, generate reports, and keep your business organized with an intuitive and powerful interface.",
+    "privacy": "public",
+    "platforms": ["ios", "android", "web"],
+    "githubUrl": "https://github.com/yourusername/your-khata",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourkhata.app"
     },
     "android": {
       "package": "com.yourkhata.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.yourkhata.app"
     },
     "web": {
       "bundler": "metro",

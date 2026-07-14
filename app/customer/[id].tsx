@@ -1,5 +1,6 @@
 import React from 'react';
 import StorageUtils, { Customer, Transaction } from '@/utils/storage';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { router, useLocalSearchParams, Stack } from 'expo-router';
@@ -292,7 +293,8 @@ export default function CustomerDetailScreen() {
       <Stack.Screen options={{ 
         headerShown: false
       }} />
-      <SafeAreaView style={styles.container}>
+      <ErrorBoundary>
+        <SafeAreaView style={styles.container}>
         {/* Header with customer name */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -385,6 +387,15 @@ export default function CustomerDetailScreen() {
               tintColor="#AAAAAA"
             />
           }
+          getItemLayout={(data, index) => ({
+            length: 85, // paddingVertical: 12 * 2 + content height + borderBottomWidth: 1
+            offset: 85 * index,
+            index,
+          })}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={8}
+          windowSize={8}
+          initialNumToRender={12}
         />
         
         {/* Transaction Action Buttons */}
@@ -405,6 +416,7 @@ export default function CustomerDetailScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+      </ErrorBoundary>
     </>
   );
 }
@@ -641,4 +653,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 14,
   },
-}); 
+});

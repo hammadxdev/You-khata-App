@@ -263,6 +263,10 @@ export default function ReportsScreen() {
             : customerTransactions
           }
           keyExtractor={(item) => item.customerId}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={5}
+          windowSize={8}
+          initialNumToRender={10}
           ListEmptyComponent={() => (
             <View style={styles.emptyContainer}>
               <Ionicons 
@@ -630,4 +634,4 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: 'bold',
   },
-}); 
+});

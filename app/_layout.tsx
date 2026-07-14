@@ -7,6 +7,8 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import AppLock from '@/components/AppLock';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import AppStateManager from '@/components/shared/AppStateManager';
 import { ThemeProvider } from '@/context/ThemeProvider';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -34,11 +36,15 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <AppLock>
-        <RootLayoutNav />
-      </AppLock>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <AppStateManager>
+        <ThemeProvider>
+          <AppLock>
+            <RootLayoutNav />
+          </AppLock>
+        </ThemeProvider>
+      </AppStateManager>
+    </ErrorBoundary>
   );
 }
 function RootLayoutNav() {

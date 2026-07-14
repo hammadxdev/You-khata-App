@@ -101,7 +101,7 @@ export default function AddTransactionScreen({ }) {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={80}
-        style={{ flex: 1 }}
+        style={styles.keyboardView}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
@@ -227,6 +227,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,

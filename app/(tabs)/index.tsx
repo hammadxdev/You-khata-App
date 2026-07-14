@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { router } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -290,29 +290,47 @@ export default function HomeScreen() {
     router.push('/add-customer');
   };
 
-  const renderCustomerItem = ({ item }: { item: Customer }) => (
-    <TouchableOpacity 
-      style={styles.customerItem}
-      onPress={() => handleCustomerPress(item.id)}
-    >
-      <View style={styles.customerLeft}>
-        <View style={styles.customerInitials}>
-          <Text style={styles.initialsText}>{item.initials}</Text>
+  // Memoized CustomerItem component for better performance
+  const CustomerItem = React.memo(function CustomerItem({
+    item,
+    onPress,
+  }: {
+    item: Customer;
+    onPress: (id: string) => void;
+  }) {
+    return (
+      <TouchableOpacity 
+        style={styles.customerItem}
+        onPress={() => onPress(item.id)}
+      >
+        <View style={styles.customerLeft}>
+          <View style={styles.customerInitials}>
+            <Text style={styles.initialsText}>{item.initials}</Text>
+          </View>
+          <View style={styles.customerInfo}>
+            <Text style={styles.customerName} numberOfLines={1} ellipsizeMode="tail">
+              {item.name}
+            </Text>
+            <Text style={styles.customerPhone} numberOfLines={1} ellipsizeMode="tail">
+              {item.phoneNumber}
+            </Text>
+          </View>
         </View>
-        <View style={styles.customerInfo}>
-          <Text style={styles.customerName}>{item.name}</Text>
-          <Text style={styles.customerPhone}>{item.phoneNumber}</Text>
-        </View>
-      </View>
-      <Text style={[
-        styles.customerAmount,
-        item.toReceive ? styles.amountReceive : styles.amountGive
-      ]}>
-        {formatCurrency(item.amount)}
-      </Text>
-    </TouchableOpacity>
-  );
-
+        <Text style={[
+          styles.customerAmount,
+          item.toReceive ? styles.amountReceive : styles.amountGive
+        ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+          ellipsizeMode="tail"
+        >
+          {formatCurrency(item.amount)}
+        </Text>
+      </TouchableOpacity>
+    );
+  });
+  
   const renderEmptyList = () => {
     if (loading) {
       return (
@@ -383,6 +401,15 @@ export default function HomeScreen() {
           <FlatList
             data={profiles}
             keyExtractor={(item) => item.id}
+            getItemLayout={(data, index) => ({
+              length: 49, // paddingVertical: 12 * 2 + content height + borderBottomWidth: 1
+              offset: 49 * index,
+              index,
+            })}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            initialNumToRender={8}
             renderItem={({ item }) => {
               const isActive = activeProfile && item.id === activeProfile.id;
               return (
@@ -469,7 +496,7 @@ export default function HomeScreen() {
       <TouchableWithoutFeedback onPress={() => setIsDropdownVisible(false)}>
         <FlatList
           data={filteredCustomers}
-          renderItem={renderCustomerItem}
+          renderItem={({ item }) => <CustomerItem item={item} onPress={handleCustomerPress} />}
           keyExtractor={item => item.id}
           style={styles.customerList}
           contentContainerStyle={filteredCustomers.length === 0 ? styles.fullHeight : undefined}
@@ -482,6 +509,15 @@ export default function HomeScreen() {
               tintColor={isDark ? '#AAAAAA' : '#666666'}
             />
           }
+          getItemLayout={(data, index) => ({
+            length: 61, // paddingVertical: 12 * 2 + content height + borderBottomWidth: 1
+            offset: 61 * index,
+            index,
+          })}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={15}
         />
       </TouchableWithoutFeedback>
 
@@ -756,9 +792,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
   customerInfo: {
     flex: 1,
+    minWidth: 0,
   },
   customerInitials: {
     width: 36,
@@ -786,6 +825,10 @@ const styles = StyleSheet.create({
   customerAmount: {
     fontWeight: 'bold',
     fontSize: 16,
+    flexShrink: 1,
+    maxWidth: '45%',
+    minWidth: 0,
+    textAlign: 'right',
   },
   amountReceive: {
     color: '#E94057',

@@ -570,7 +570,7 @@ export default function AccountScreen() {
               onPress={handleChangePin}
               disabled={!pinEnabled}
             >
-              <Ionicons name="keypad" size={18} color={!pinEnabled ? "#CCC" : "#FFFFFF"} style={{ marginRight: 8 }} />
+              <Ionicons name="keypad" size={18} color={!pinEnabled ? "#CCC" : "#FFFFFF"} style={styles.iconMargin} />
               <Text style={[styles.settingButtonText, !pinEnabled && styles.disabledButtonText]}>
                 Change PIN
               </Text>
@@ -1272,4 +1272,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-}); 
+  iconMargin: {
+    marginRight: 8,
+  },
+});
